@@ -48,13 +48,66 @@
 #define fHexAndDec(v) std::hexfloat << (v) << " (" << std::defaultfloat << (v) << ")"
 
 
-// C++ 17 because it is otherwise annoying to browse all files in a directory.
-// We also only run these tests on little endian systems.
-#if (FASTFLOAT_CPLUSPLUS >= 201703L) && (FASTFLOAT_IS_BIG_ENDIAN == 0) && !defined(FASTFLOAT_ODDPLATFORM)
+const char * round_name(int d) {
+  switch(d) {
+    case FE_UPWARD:
+      return "FE_UPWARD";
+    case FE_DOWNWARD:
+      return "FE_DOWNWARD";
+    case FE_TOWARDZERO:
+      return "FE_TOWARDZERO";
+    case FE_TONEAREST:
+      return "FE_TONEAREST";
+    default:
+      return "UNKNOWN";
+  }
+}
 
-#include <iostream>
-#include <filesystem>
-#include <charconv>
+
+#define FASTFLOAT_STR(x)   #x
+#define SHOW_DEFINE(x) printf("%s='%s'\n", #x, FASTFLOAT_STR(x))
+
+TEST_CASE("system_info") {
+    std::cout << "system info:" << std::endl;
+#ifdef _MSC_VER
+    SHOW_DEFINE(_MSC_VER);
+#endif
+#ifdef FASTFLOAT_64BIT_LIMB
+    SHOW_DEFINE(FASTFLOAT_64BIT_LIMB);
+#endif
+#ifdef __clang__
+    SHOW_DEFINE(__clang__);
+#endif
+#ifdef FASTFLOAT_VISUAL_STUDIO
+    SHOW_DEFINE(FASTFLOAT_VISUAL_STUDIO);
+#endif
+#ifdef FASTFLOAT_IS_BIG_ENDIAN
+    #if FASTFLOAT_IS_BIG_ENDIAN
+      printf("big endian\n");
+    #else
+      printf("little endian\n");
+    #endif
+#endif
+#ifdef FASTFLOAT_32BIT
+    SHOW_DEFINE(FASTFLOAT_32BIT);
+#endif
+#ifdef FASTFLOAT_64BIT
+    SHOW_DEFINE(FASTFLOAT_64BIT);
+#endif
+#ifdef FLT_EVAL_METHOD
+    SHOW_DEFINE(FLT_EVAL_METHOD);
+#endif
+#ifdef _WIN32
+    SHOW_DEFINE(_WIN32);
+#endif
+#ifdef _WIN64
+    SHOW_DEFINE(_WIN64);
+#endif
+    std::cout << "fegetround() = " << round_name(fegetround()) << std::endl;
+    std::cout << std::endl;
+
+}
+
 
 TEST_CASE("rounds_to_nearest") {
   //
@@ -82,21 +135,62 @@ TEST_CASE("rounds_to_nearest") {
   CHECK(fast_float::detail::rounds_to_nearest() == true);
 }
 
-const char * round_name(int d) {
-  switch(d) {
-    case FE_UPWARD:
-      return "FE_UPWARD";
-    case FE_DOWNWARD:
-      return "FE_DOWNWARD";
-    case FE_TOWARDZERO:
-      return "FE_TOWARDZERO";
-    case FE_TONEAREST:
-      return "FE_TONEAREST";
-    default:
-      return "UNKNOWN";
-  }
+TEST_CASE("parse_zero") {
+  //
+  // If this function fails, we may be left in a non-standard rounding state.
+  //
+  const char * zero = "0";
+  uint64_t float64_parsed;
+  double f = 0;
+  ::memcpy(&float64_parsed, &f, sizeof(f));
+  CHECK(float64_parsed == 0);
 
+  fesetround(FE_UPWARD);
+  auto r1 = fast_float::from_chars(zero, zero + 1, f);
+  CHECK(r1.ec == std::errc());
+  std::cout << "FE_UPWARD parsed zero as " << iHexAndDec(f) << std::endl;
+  CHECK(f == 0);
+  ::memcpy(&float64_parsed, &f, sizeof(f));
+  std::cout << "double as uint64_t is " << float64_parsed << std::endl;
+  CHECK(float64_parsed == 0);
+
+  fesetround(FE_TOWARDZERO);
+  auto r2 = fast_float::from_chars(zero, zero + 1, f);
+  CHECK(r2.ec == std::errc());
+  std::cout << "FE_TOWARDZERO parsed zero as " << iHexAndDec(f) << std::endl;
+  CHECK(f == 0);
+  ::memcpy(&float64_parsed, &f, sizeof(f));
+  std::cout << "double as uint64_t is " << float64_parsed << std::endl;
+  CHECK(float64_parsed == 0);
+
+  fesetround(FE_DOWNWARD);
+  auto r3 = fast_float::from_chars(zero, zero + 1, f);
+  CHECK(r3.ec == std::errc());
+  std::cout << "FE_DOWNWARD parsed zero as " << iHexAndDec(f) << std::endl;
+  CHECK(f == 0);
+  ::memcpy(&float64_parsed, &f, sizeof(f));
+  std::cout << "double as uint64_t is " << float64_parsed << std::endl;
+  CHECK(float64_parsed == 0);
+
+  fesetround(FE_TONEAREST);
+  auto r4 = fast_float::from_chars(zero, zero + 1, f);
+  CHECK(r4.ec == std::errc());
+  std::cout << "FE_TONEAREST parsed zero as " << iHexAndDec(f) << std::endl;
+  CHECK(f == 0);
+  ::memcpy(&float64_parsed, &f, sizeof(f));
+  std::cout << "double as uint64_t is " << float64_parsed << std::endl;
+  CHECK(float64_parsed == 0);
 }
+
+// C++ 17 because it is otherwise annoying to browse all files in a directory.
+// We also only run these tests on little endian systems.
+#if (FASTFLOAT_CPLUSPLUS >= 201703L) && (FASTFLOAT_IS_BIG_ENDIAN == 0) && !defined(FASTFLOAT_ODDPLATFORM)
+
+#include <iostream>
+#include <filesystem>
+#include <charconv>
+
+
 
 // return true on success
 bool check_file(std::string file_name) {
@@ -141,14 +235,16 @@ bool check_file(std::string file_name) {
           // Compare with expected results
           if (float32_parsed != float32) {
             std::cout << "bad 32 " << str << std::endl;
-            std::cout << "parsed = " << iHexAndDec(float32_parsed) << ", expectd = " << iHexAndDec(float32) << std::endl;
+            std::cout << "parsed as " << iHexAndDec(parsed_32) << std::endl;
+            std::cout << "as  raw uint32_t, parsed = " << float32_parsed << ", expected = " << float32 << std::endl;
             std::cout << "fesetround: " << round_name(d) << std::endl;
             fesetround(FE_TONEAREST);
             return false;
           }
           if (float64_parsed != float64) {
             std::cout << "bad 64 " << str << std::endl;
-            std::cout << "parsed = " << iHexAndDec(float64_parsed) << ", expectd = " << iHexAndDec(float64) << std::endl;
+            std::cout << "parsed as " << iHexAndDec(parsed_64) << std::endl;
+            std::cout << "as raw uint64_t, parsed = " << float64_parsed << ", expected = " << float64 << std::endl;
             std::cout << "fesetround: " << round_name(d) << std::endl;
             fesetround(FE_TONEAREST);
             return false;

@@ -135,8 +135,14 @@ from_chars_result from_chars_advanced(const char *first, const char *last,
     // We do not have that fegetround() == FE_TONEAREST.
     // Next is a modified Clinger's fast path, inspired by Jakub Jelínek's proposal
     if (pns.exponent >= 0 && pns.exponent <= binary_format<T>::max_exponent_fast_path() && pns.mantissa <=binary_format<T>::max_mantissa_fast_path(pns.exponent) && !pns.too_many_digits) {
-      value = T(pns.mantissa);
-      value = value * binary_format<T>::exact_power_of_ten(pns.exponent);
+#if (defined(_MSC_VER) && defined(__clang__))
+      // ClangCL may map 0 to -0.0 when fegetround() == FE_DOWNWARD
+      if(pns.mantissa == 0) {
+        value = 0;
+        return answer;
+      }
+#endif
+      value = T(pns.mantissa) * binary_format<T>::exact_power_of_ten(pns.exponent);
       if (pns.negative) { value = -value; }
       return answer;
     }
