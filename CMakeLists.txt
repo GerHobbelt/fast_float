@@ -29,6 +29,7 @@ if(FASTFLOAT_INSTALL)
 endif()
 
 add_library(fast_float INTERFACE)
+add_library(FastFloat::fast_float ALIAS fast_float)
 target_include_directories(
   fast_float
   INTERFACE
