@@ -78,6 +78,24 @@
 #endif
 #endif
 
+
+#if defined(__GNUC__)
+#define FASTFLOAT_SIMD_DISABLE_WARNINGS \
+  _Pragma("GCC diagnostic push") \
+  _Pragma("GCC diagnostic ignored \"-Wcast-align\"")
+#else
+#define FASTFLOAT_SIMD_DISABLE_WARNINGS
+#endif
+
+#if defined(__GNUC__)
+#define FASTFLOAT_SIMD_RESTORE_WARNINGS \
+  _Pragma("GCC diagnostic pop")
+#else
+#define FASTFLOAT_SIMD_RESTORE_WARNINGS
+#endif
+
+
+
 #ifdef FASTFLOAT_VISUAL_STUDIO
 #define fastfloat_really_inline __forceinline
 #else
@@ -105,12 +123,22 @@ fastfloat_really_inline constexpr bool cpp20_and_in_constexpr() {
 #endif
 }
 
+fastfloat_really_inline constexpr bool has_simd() {
+#if FASTFLOAT_SSE2
+  return true;
+#else
+  return false;
+#endif
+}
+
 // Compares two ASCII strings in a case insensitive manner.
+// maya: for now, keep input2 ASCII only
+template <typename CharT>
 inline FASTFLOAT_CONSTEXPR14 bool
-fastfloat_strncasecmp(const char *input1, const char *input2, size_t length) {
+fastfloat_strncasecmp(const CharT *input1, const char *input2, size_t length) {
   char running_diff{0};
   for (size_t i = 0; i < length; i++) {
-    running_diff |= (input1[i] ^ input2[i]);
+    running_diff |= (static_cast<char>(input1[i]) ^ input2[i]);
   }
   return (running_diff == 0) || (running_diff == 32);
 }
