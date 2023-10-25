@@ -14,7 +14,7 @@
        || (defined(__ppc64__) || defined(__PPC64__) || defined(__ppc64le__) || defined(__PPC64LE__)) )
 #define FASTFLOAT_64BIT 1
 #elif (defined(__i386) || defined(__i386__) || defined(_M_IX86)   \
-     || defined(__arm__) || defined(_M_ARM)                   \
+     || defined(__arm__) || defined(_M_ARM) || defined(__ppc__)   \
      || defined(__MINGW32__) || defined(__EMSCRIPTEN__))
 #define FASTFLOAT_32BIT 1
 #else
@@ -50,7 +50,11 @@
 #elif defined(sun) || defined(__sun)
 #include <sys/byteorder.h>
 #else
+#ifdef __has_include
+#if __has_include(<endian.h>)
 #include <endian.h>
+#endif //__has_include(<endian.h>)
+#endif //__has_include
 #endif
 #
 #ifndef __BYTE_ORDER__
