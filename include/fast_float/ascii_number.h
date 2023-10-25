@@ -99,6 +99,7 @@ struct parsed_number_string {
   const char *lastmatch{nullptr};
   bool negative{false};
   bool valid{false};
+  bool is_64bit_int{false};
   bool too_many_digits{false};
   // contains the range of the significant digits
   byte_span integer{};  // non-nullable
@@ -110,6 +111,8 @@ struct parsed_number_string {
 fastfloat_really_inline FASTFLOAT_CONSTEXPR20
 parsed_number_string parse_number_string(const char *p, const char *pend, parse_options options) noexcept {
   const chars_format fmt = options.format;
+  const parse_rules rules = options.rules;
+  const bool parse_ints = options.parse_ints;
   const char decimal_point = options.decimal_point;
 
   parsed_number_string answer;
@@ -125,9 +128,9 @@ parsed_number_string parse_number_string(const char *p, const char *pend, parse_
     if (p == pend) {
       return answer;
     }
-    if (!is_integer(*p) && (*p != decimal_point)) { // a sign must be followed by an integer or the dot
-      return answer;
-    }
+    // a sign must be followed by an integer or the dot
+    if (!is_integer(*p) && (rules == parse_rules::json_rules || *p != decimal_point))
+        return answer;
   }
   const char *const start_digits = p;
 
@@ -144,7 +147,8 @@ parsed_number_string parse_number_string(const char *p, const char *pend, parse_
   int64_t digit_count = int64_t(end_of_integer_part - start_digits);
   answer.integer = byte_span(start_digits, size_t(digit_count));
   int64_t exponent = 0;
-  if ((p != pend) && (*p == decimal_point)) {
+  const bool has_decimal_point = (p != pend) && (*p == decimal_point);
+  if (has_decimal_point) {
     ++p;
     const char* before = p;
     // can occur at most twice without overflowing, but let it occur more, since
@@ -162,8 +166,8 @@ parsed_number_string parse_number_string(const char *p, const char *pend, parse_
     answer.fraction = byte_span(before, size_t(p - before));
     digit_count -= exponent;
   }
-  // we must have encountered at least one integer!
-  if (digit_count == 0) {
+  // we must have encountered at least one integer (or two if a decimal point exists, with json rules).
+  if (digit_count == 0 || (rules == parse_rules::json_rules && has_decimal_point && digit_count == 1)) {
     return answer;
   }
   int64_t exp_number = 0;            // explicit exponential part
@@ -199,8 +203,14 @@ parsed_number_string parse_number_string(const char *p, const char *pend, parse_
     // If it scientific and not fixed, we have to bail out.
     if((fmt & chars_format::scientific) && !(fmt & chars_format::fixed)) { return answer; }
   }
+  
+  // disallow leading zeros before the decimal point
+  if (rules == parse_rules::json_rules && start_digits[0] == '0' && digit_count >= 2 && is_integer(start_digits[1]))
+      return answer;
+
   answer.lastmatch = p;
   answer.valid = true;
+  answer.is_64bit_int = (p == end_of_integer_part);
 
   // If we frequently had to deal with long strings of digits,
   // we could extend our code by using a 128-bit integer instead
@@ -217,8 +227,15 @@ parsed_number_string parse_number_string(const char *p, const char *pend, parse_
       if(*start == '0') { digit_count --; }
       start++;
     }
-    if (digit_count > 19) {
-      answer.too_many_digits = true;
+    constexpr uint64_t minimal_twenty_digit_integer{10000000000000000000ULL};
+    // maya: A 64-bit number may have up to 20 digits, not 19! 
+    // If we're parsing ints, preserve accuracy up to 20 digits instead
+    // of converting them to the closest floating point value.
+    answer.too_many_digits = rules == parse_rules::json_rules && parse_ints && answer.is_64bit_int ?
+        (digit_count > 20 || i < minimal_twenty_digit_integer) : digit_count > 19;
+        
+    if (answer.too_many_digits) {
+      answer.is_64bit_int = false;
       // Let us start again, this time, avoiding overflows.
       // We don't need to check if is_integer, since we use the
       // pre-tokenized spans from above.
