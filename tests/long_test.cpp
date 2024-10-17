@@ -45,7 +45,7 @@ bool test() {
   return true;
 }
 
-int main() {
+int main(void) {
 
   std::cout << "32 bits checks" << std::endl;
   Assert(test<float>());

@@ -58,7 +58,7 @@ void allvalues() {
   std::cout << std::endl;
 }
 
-int main() {
+int main(void) {
   allvalues();
   std::cout << std::endl;
   std::cout << "all ok" << std::endl;

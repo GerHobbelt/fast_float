@@ -113,7 +113,7 @@ bool eddelbuettel() {
   return true;
 }
 
-int main() {
+int main(void) {
   if (!eddelbuettel()) {
     printf("Bug.\n");
     return EXIT_FAILURE;

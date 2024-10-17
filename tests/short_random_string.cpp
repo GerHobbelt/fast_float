@@ -224,7 +224,7 @@ bool tester(uint64_t seed, size_t volume) {
   return true;
 }
 
-int main() {
+int main(void) {
 #if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)  || defined(sun) || defined(__sun)
   std::cout << "Warning: msys/cygwin detected. This particular test is likely to generate false failures due to our reliance on the underlying runtime library." << std::endl;
   return EXIT_SUCCESS;

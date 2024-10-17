@@ -98,7 +98,7 @@ void random_values(size_t N) {
   std::cout << std::endl;
 }
 
-int main() {
+int main(void) {
   errors = 0;
   size_t N = size_t(1) << (sizeof(size_t) * 4); // shift: 32 for 64bit, 16 for 32bit
   random_values(N);

@@ -140,7 +140,7 @@ inline void Assert(bool Assertion) {
   if (!Assertion) { throw std::runtime_error("bug"); }
 #endif
 }
-int main() {
+int main(void) {
 #if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(sun) || defined(__sun)
   std::cout << "Warning: msys/cygwin or solaris detected. This particular test is likely to generate false failures due to our reliance on the underlying runtime library as a gold standard." << std::endl;
 #endif

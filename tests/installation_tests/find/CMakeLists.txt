@@ -15,7 +15,7 @@ file(WRITE main.cpp "
 #include \"fast_float/fast_float.h\"
 #include <iostream>
 
-int main() {
+int main(void) {
     const std::string input =  \"3.1416 xyz \";
     double result;
     auto answer = fast_float::from_chars(input.data(), input.data()+input.size(), result);

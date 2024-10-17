@@ -228,7 +228,7 @@ bool tester(uint64_t seed, size_t volume) {
   return true;
 }
 
-int main() {
+int main(void) {
 
 #if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)  || defined(sun) || defined(__sun)
   std::cout << "Warning: msys/cygwin or solaris detected." << std::endl;

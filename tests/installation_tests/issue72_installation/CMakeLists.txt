@@ -18,7 +18,7 @@ file(WRITE test.h "
 
 file(WRITE main.cpp "
 #include \"test.h\"
-int main() { return 0; }")
+int main(void) { return 0; }")
 
 file(WRITE foo.cpp "
 #include \"test.h\"

@@ -70,7 +70,7 @@ void all_32bit_values() {
   std::cout << std::endl;
 }
 
-int main() {
+int main(void) {
   all_32bit_values();
   std::cout << std::endl;
   std::cout << "all ok" << std::endl;

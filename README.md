@@ -41,7 +41,7 @@ Example:
 #include "fast_float/fast_float.h"
 #include <iostream>
 
-int main() {
+int main(void) {
     const std::string input =  "3.1416 xyz ";
     double result;
     auto answer = fast_float::from_chars(input.data(), input.data()+input.size(), result);
@@ -107,7 +107,7 @@ the comma). You may use it as follows.
 #include "fast_float/fast_float.h"
 #include <iostream>
 
-int main() {
+int main(void) {
     const std::string input =  "3,1416 xyz ";
     double result;
     fast_float::parse_options options{fast_float::chars_format::general, ','};

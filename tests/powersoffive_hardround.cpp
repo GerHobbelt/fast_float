@@ -122,7 +122,7 @@ bool tester() {
   return true;
 }
 
-int main() {
+int main(void) {
   if (tester()) {
     std::cout << std::endl;
     std::cout << "all ok" << std::endl;
